@@ -35,8 +35,8 @@ with torch.inference_mode():
         sample_dir.mkdir(parents=True, exist_ok=True)
 
         audio = torchaudio.functional.resample(
-            audio[0].cuda(), original_sample_rate, sample_rate
-        ).unsqueeze(0)
+            audio.cuda(), original_sample_rate, sample_rate
+        )
 
         latent_tensor = model.encoder(audio)
         latent_list = [[int(x) for x in xs] for xs in latent_tensor[0].T]
@@ -48,9 +48,9 @@ with torch.inference_mode():
         torchaudio.save(sample_dir / "orig.wav", audio.cpu(), sample_rate)
 
         orig_score = key.check(latent_list, apply=True)
-        water_tensor = torch.tensor(latent_list, dtype=torch.float32, device="cuda").T
+        wat_tensor = torch.tensor(latent_list, dtype=torch.float32, device="cuda").T
 
-        wat_audio = model.decoder(water_tensor)
+        wat_audio = model.decoder(wat_tensor)
         torchaudio.save(sample_dir / "wat.wav", wat_audio.squeeze(0).cpu(), sample_rate)
 
         wat_tensor = model.encoder(wat_audio)
@@ -79,8 +79,6 @@ with torch.inference_mode():
         opus = torchaudio.functional.resample(
             opus[0].cuda(), original_sample_rate, sample_rate
         ).unsqueeze(0)
-
-        print(opus.shape, audio.shape)
 
         opus_tensor = model.encoder(opus)
         opus_list = [[int(x) for x in xs] for xs in opus_tensor[0].T]
