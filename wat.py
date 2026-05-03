@@ -15,8 +15,8 @@ key = Key(
     kernel_size=5,
     confidence_factor=1.5,
     seed=0,
-    source_count=3,
-    target_count=2,
+    source_count=2,
+    target_count=3,
 )
 
 sample_rate = 16_000
@@ -58,6 +58,11 @@ with torch.inference_mode():
 
         new_score = key.check(wat_list)
 
+        shifted_audio = torch.nn.functional.pad(wat_audio[0], (8, 0))
+        shifted_tensor = model.encoder(shifted_audio)
+        shifted_list = [[int(x) for x in xs] for xs in shifted_tensor[0].T]
+        shift_score = key.check(shifted_list)
+
         run(
             [
                 "ffmpeg",
@@ -88,3 +93,4 @@ with torch.inference_mode():
         print(f"Orig: {orig_score:.2f}")
         print(f"New: {new_score:.2f}")
         print(f"Opus: {opus_score:.2f}")
+        print(f"Shift: {shift_score:.2f}")
