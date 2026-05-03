@@ -17,14 +17,18 @@ class Key:
         self.confidence_factor = confidence_factor
         self.kernel_size = kernel_size
 
+        random = Random(seed)
         points = [
             (row, column)
             for row in range(kernel_size)
             for column in range(channel_count)
         ]
-        selected_points = Random(seed).sample(points, source_count + target_count)
+
+        selected_points = random.sample(points, source_count + target_count)
+
         self.sources = selected_points[:source_count]
         self.targets = selected_points[source_count:]
+        self.shifts = random.choices(range(3), k=target_count)
 
     def check(self, latents: list[list[int]], apply: bool = False) -> float:
         count = 0
@@ -40,14 +44,14 @@ class Key:
             value = (value % 3) - 1
             match = True
 
-            for row, column in self.targets:
+            for (row, column), shift in zip(self.targets, self.shifts):
+                value = (value + shift) % 3 - 1
+
                 if pattern[row][column] != value:
                     match = False
 
                     if apply:
                         pattern[row][column] = value
-
-                value = (value + 2) % 3 - 1
 
             if match:
                 count += 1
