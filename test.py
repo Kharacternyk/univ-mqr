@@ -12,11 +12,8 @@ from watermark import Watermark
 
 key = Key(
     channel_count=64,
-    kernel_size=7,
-    confidence_factor=2.5,
+    confidence_factor=1.5,
     seed=0,
-    source_count=2,
-    target_count=3,
 )
 watermark = Watermark(
     checkpoint="checkpoints/208000/model.pt",
