@@ -14,34 +14,37 @@ class Key:
         self.confidence_factor = confidence_factor
 
         random = Random(seed)
-        self.channels = random.sample(range(channel_count), 5)
+        channels = random.sample(range(channel_count), 5)
+        self.gate_channel = channels[0]
+        self.minion_channels = []
+
+        for _ in range(3):
+            batch = channels[1:]
+            random.shuffle(batch)
+            self.minion_channels.append(batch)
 
     def check(self, latents: list[list[int]], apply: bool = False) -> float:
         count = 0
         shrunk_length = len(latents) - 2
 
         for i in range(shrunk_length):
-            gate = latents[i][self.channels[0]]
-
-            if gate == 0:
-                gate = 1
+            gate = latents[i][self.gate_channel]
+            minion_channels = self.minion_channels[gate]
 
             if (
-                gate * latents[i][self.channels[1]] > latents[i][self.channels[2]]
-                and gate * latents[i][self.channels[3]] > latents[i][self.channels[4]]
+                latents[i][minion_channels[0]] > latents[i][minion_channels[1]]
+                and latents[i][minion_channels[2]] > latents[i][minion_channels[3]]
             ):
                 count += 1
 
-            op1, op2 = (max, min) if gate == 1 else (min, max)
-
             if apply:
-                for j in [self.channels[1], self.channels[3]]:
-                    latents[i][j] = op1(
+                for j in [minion_channels[0], minion_channels[2]]:
+                    latents[i][j] = max(
                         latents[i][j], latents[i + 1][j], latents[i + 2][j]
                     )
 
-                for j in [self.channels[2], self.channels[4]]:
-                    latents[i][j] = op2(
+                for j in [minion_channels[1], minion_channels[3]]:
+                    latents[i][j] = min(
                         latents[i][j], latents[i + 1][j], latents[i + 2][j]
                     )
 
