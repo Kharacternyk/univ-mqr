@@ -65,6 +65,6 @@ class Watermark:
 
         if reconstruct:
             reconstructed = self.model.decoder(original_latents).cpu().squeeze(0)
-            trimmed = audio[: len(reconstructed)]
+            trimmed = audio[: len(reconstructed)].cpu()
 
         return high_score, trimmed, applied, reconstructed
