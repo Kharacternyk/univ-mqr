@@ -12,7 +12,7 @@ from watermark import Watermark
 
 key = Key(
     channel_count=64,
-    kernel_size=5,
+    kernel_size=7,
     confidence_factor=1.8,
     seed=0,
     source_count=2,
