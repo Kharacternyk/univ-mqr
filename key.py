@@ -14,25 +14,38 @@ class Key:
         self.confidence_factor = confidence_factor
 
         random = Random(seed)
-        self.x, self.y = random.sample(range(channel_count), 2)
+        self.channels = random.sample(range(channel_count), 5)
 
     def check(self, latents: list[list[int]], apply: bool = False) -> float:
         count = 0
         shrunk_length = len(latents) - 2
 
         for i in range(shrunk_length):
-            if latents[i][self.x] > latents[i][self.y]:
+            gate = latents[i][self.channels[0]]
+
+            if gate == 0:
+                gate = 1
+
+            if (
+                gate * latents[i][self.channels[1]] > latents[i][self.channels[2]]
+                and gate * latents[i][self.channels[3]] > latents[i][self.channels[4]]
+            ):
                 count += 1
 
-            if apply:
-                latents[i][self.x] = max(
-                    latents[i][self.x], latents[i + 1][self.x], latents[i + 2][self.x]
-                )
-                latents[i][self.y] = min(
-                    latents[i][self.y], latents[i + 1][self.y], latents[i + 2][self.y]
-                )
+            op1, op2 = (max, min) if gate == 1 else (min, max)
 
-        p = self.confidence_factor / 3
+            if apply:
+                for j in [self.channels[1], self.channels[3]]:
+                    latents[i][j] = op1(
+                        latents[i][j], latents[i + 1][j], latents[i + 2][j]
+                    )
+
+                for j in [self.channels[2], self.channels[4]]:
+                    latents[i][j] = op2(
+                        latents[i][j], latents[i + 1][j], latents[i + 2][j]
+                    )
+
+        p = self.confidence_factor / 9
 
         return 1 - sum(
             comb(shrunk_length, k) * p**k * (1 - p) ** (shrunk_length - k)
