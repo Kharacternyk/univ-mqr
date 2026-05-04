@@ -32,18 +32,17 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
     sample_dir = Path("test") / sample_id
     sample_dir.mkdir(parents=True, exist_ok=True)
 
-    original_score, applied, reconstructed = watermark.check(
+    original_score, trimmed, applied, reconstructed = watermark.check(
         audio=audio, sample_rate=sample_rate, apply=True, reconstruct=True
     )
 
+    assert trimmed is not None
     assert applied is not None
     assert reconstructed is not None
 
     print(f"{original_score=:.2f}")
 
-    audio = audio[:, : reconstructed.size(-1)]
-
-    torchaudio.save(sample_dir / "audio.wav", audio, watermark.sample_rate)
+    torchaudio.save(sample_dir / "audio.wav", trimmed, watermark.sample_rate)
     torchaudio.save(sample_dir / "applied.wav", applied, watermark.sample_rate)
     torchaudio.save(
         sample_dir / "reconstructed.wav", reconstructed, watermark.sample_rate

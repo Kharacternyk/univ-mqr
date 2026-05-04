@@ -29,7 +29,7 @@ class Watermark:
         sample_rate: int | None = None,
         apply: bool = False,
         reconstruct: bool = False,
-    ) -> tuple[float, None | Tensor, None | Tensor]:
+    ) -> tuple[float, None | Tensor, None | Tensor, None | Tensor]:
         audio = audio.cuda()
 
         if sample_rate and sample_rate != self.sample_rate:
@@ -61,8 +61,10 @@ class Watermark:
             applied = self.model.decoder(applied_latents).cpu().squeeze(0)
 
         reconstructed = None
+        trimmed = None
 
         if reconstruct:
             reconstructed = self.model.decoder(original_latents).cpu().squeeze(0)
+            trimmed = audio[: len(reconstructed)]
 
-        return high_score, applied, reconstructed
+        return high_score, trimmed, applied, reconstructed
