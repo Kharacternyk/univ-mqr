@@ -28,7 +28,10 @@ class Key:
 
         self.sources = selected_points[:source_count]
         self.targets = selected_points[source_count:]
-        self.shifts = random.choices(range(3), k=target_count)
+
+        self.coefficients = [
+            random.choices(range(3), k=source_count + 1) for _ in range(target_count)
+        ]
 
     def check(self, latents: list[list[int]], apply: bool = False) -> float:
         count = 0
@@ -36,22 +39,23 @@ class Key:
 
         for i in range(shrunk_length):
             pattern = latents[i : i + self.kernel_size]
-            value = 0
+            values = [pattern[row][column] for row, column in self.sources]
 
-            for row, column in self.sources:
-                value += pattern[row][column]
-
-            value = (value % 3) - 1
             match = True
 
-            for (row, column), shift in zip(self.targets, self.shifts):
-                value = (value + shift) % 3 - 1
+            for (row, column), coefficients in zip(self.targets, self.coefficients):
+                result = coefficients[-1]
 
-                if pattern[row][column] != value:
+                for value, coefficient in zip(values, coefficients[:-1]):
+                    result += value * coefficient
+
+                result = (result % 3) - 1
+
+                if pattern[row][column] != result:
                     match = False
 
                     if apply:
-                        pattern[row][column] = value
+                        pattern[row][column] = result
 
             if match:
                 count += 1
