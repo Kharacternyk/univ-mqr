@@ -62,7 +62,7 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
             "-c:a",
             "libopus",
             "-b:a",
-            "6k",
+            "10k",
             sample_dir / "applied.ogg",
         ],
         check=True,
