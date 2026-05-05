@@ -12,14 +12,14 @@ from watermark import Watermark
 
 key = Key(
     channel_count=64,
-    confidence_factor=1.5,
-    seed=0,
+    confidence_factor=0.87,
+    seed=1,
 )
 watermark = Watermark(
     checkpoint="checkpoints/208000/model.pt",
     key=key,
     sample_rate=16_000,
-    shift=6,
+    shift=64,
 )
 
 dataset = LIBRITTS("./data/", "test-clean")
@@ -62,7 +62,7 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
             "-c:a",
             "libopus",
             "-b:a",
-            "16k",
+            "6k",
             sample_dir / "applied.ogg",
         ],
         check=True,

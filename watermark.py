@@ -35,12 +35,9 @@ class Watermark:
         if sample_rate and sample_rate != self.sample_rate:
             audio = resample(audio, sample_rate, self.sample_rate)
 
-        half_window = self.sample_rate // 100
+        window = self.sample_rate // 50
         batch = stack(
-            [
-                pad(audio, (x, half_window - x))
-                for x in range(0, half_window, self.shift)
-            ]
+            [pad(audio, (x, window - x)) for x in range(0, window, self.shift)]
         )
 
         latents_batch = [
