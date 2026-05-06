@@ -10,8 +10,7 @@ class Key:
         seed: int,
     ):
         self.channel_count = channel_count
-        self.random = Random(seed)
-        self.channels = self.random.sample(range(channel_count), 3)
+        self.channels = Random(seed).sample(range(channel_count), 3)
 
     def check(self, latents: list[list[int]], apply: bool = False) -> float:
         count = 0
