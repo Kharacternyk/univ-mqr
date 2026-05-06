@@ -8,7 +8,7 @@ from model import Model
 
 class Watermark:
     @inference_mode()
-    def __init__(self, *, checkpoint: str, key: Key, sample_rate: int, shift: int):
+    def __init__(self, *, checkpoint: str, key: Key, sample_rate: int, shift: int = 0):
         state_dict = load(checkpoint, weights_only=True)
         model = Model(channel_count=key.channel_count).cuda()
         model.load_state_dict(state_dict, strict=True)
@@ -35,10 +35,13 @@ class Watermark:
         if sample_rate and sample_rate != self.sample_rate:
             audio = resample(audio, sample_rate, self.sample_rate)
 
-        window = self.sample_rate // 50
-        batch = stack(
-            [pad(audio, (x, window - x)) for x in range(0, window, self.shift)]
-        )
+        if self.shift > 0:
+            window = self.sample_rate // 50
+            batch = stack(
+                [pad(audio, (x, window - x)) for x in range(0, window, self.shift)]
+            )
+        else:
+            batch = audio.unsqueeze(0)
 
         latents_batch = [
             [[int(x) for x in xs] for xs in xss.T] for xss in self.model.encoder(batch)
