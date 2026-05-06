@@ -13,7 +13,7 @@ with torch.inference_mode():
     model.load_state_dict(state_dict, strict=True)
     model.eval()
 
-    audio = dataset[42]
+    audio = dataset[3155]
 
     audio = torchaudio.functional.resample(
         audio[0][0], audio[1], sample_rate

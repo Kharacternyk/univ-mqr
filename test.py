@@ -12,7 +12,6 @@ from watermark import Watermark
 
 key = Key(
     channel_count=64,
-    confidence_factor=0.87,
     seed=1,
 )
 watermark = Watermark(
@@ -23,7 +22,8 @@ watermark = Watermark(
 )
 
 dataset = LIBRITTS("./data/", "test-clean")
-subset = [dataset[i] for i in Random(0).sample(range(len(dataset)), 5)]
+indices = Random(0).sample(range(len(dataset)), 5)
+subset = [dataset[i] for i in indices]
 
 for audio, sample_rate, *_, sample_id in tqdm(subset):
     sample_dir = Path("test") / sample_id
@@ -62,7 +62,7 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
             "-c:a",
             "libopus",
             "-b:a",
-            "10k",
+            "8k",
             sample_dir / "applied.ogg",
         ],
         check=True,
