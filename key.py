@@ -22,7 +22,7 @@ class Key:
                 elif apply:
                     latent[i] = 0
 
-        p = 0.55
+        p = 0.57
         n = len(latents) * len(self.channels)
         mu = n * p
         sigma = sqrt(n * p * (1 - p))

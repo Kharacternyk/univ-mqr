@@ -10,66 +10,86 @@ from tqdm import tqdm
 from key import Key
 from watermark import Watermark
 
-key = Key(
-    channel_count=64,
-    seed=1,
-)
-watermark = Watermark(
-    checkpoint="checkpoints/208000/model.pt",
-    key=key,
-    sample_rate=16_000,
-    shift=64,
-)
-
 dataset = LIBRITTS("./data/", "test-clean")
-indices = Random(0).sample(range(len(dataset)), 5)
+indices = Random(0).sample(range(len(dataset)), 100)
 subset = [dataset[i] for i in indices]
 
-for audio, sample_rate, *_, sample_id in tqdm(subset):
-    sample_dir = Path("test") / sample_id
-    sample_dir.mkdir(parents=True, exist_ok=True)
 
-    original_score, trimmed, applied, reconstructed = watermark.check(
-        audio=audio, sample_rate=sample_rate, apply=True, reconstruct=True
+for seed in [1, 2, 3, 4, 5]:
+    key = Key(
+        channel_count=64,
+        seed=seed,
+    )
+    watermark = Watermark(
+        checkpoint="checkpoints/208000/model.pt",
+        key=key,
+        sample_rate=16_000,
+        shift=32,
     )
 
-    assert trimmed is not None
-    assert applied is not None
-    assert reconstructed is not None
+    audio_filename = "audio.wav"
+    applied_filename = "applied.wav"
+    reconstructed_filename = "reconstructed.wav"
 
-    print(f"{original_score=:.2f}")
+    for audio, sample_rate, *_, sample_id in tqdm(subset):
+        sample_dir = Path("test") / f"{seed}" / sample_id
+        sample_dir.mkdir(parents=True, exist_ok=True)
 
-    torchaudio.save(sample_dir / "audio.wav", trimmed, watermark.sample_rate)
-    torchaudio.save(sample_dir / "applied.wav", applied, watermark.sample_rate)
-    torchaudio.save(
-        sample_dir / "reconstructed.wav", reconstructed, watermark.sample_rate
-    )
+        original_score, trimmed, applied, reconstructed = watermark.check(
+            audio=audio, sample_rate=sample_rate, apply=True, reconstruct=True
+        )
 
-    applied_score = watermark.check(audio=applied)[0]
-    print(f"{applied_score=:.2f}")
+        assert trimmed is not None
+        assert applied is not None
+        assert reconstructed is not None
 
-    shifted_audio = pad(applied, (123, 0))
-    shifted_score = watermark.check(audio=shifted_audio)[0]
-    print(f"{shifted_score=:.2f}")
+        torchaudio.save(sample_dir / audio_filename, trimmed, watermark.sample_rate)
+        torchaudio.save(sample_dir / applied_filename, applied, watermark.sample_rate)
+        torchaudio.save(
+            sample_dir / reconstructed_filename, reconstructed, watermark.sample_rate
+        )
 
-    run(
-        [
-            "ffmpeg",
-            "-hide_banner",
-            "-y",
-            "-i",
-            sample_dir / "applied.wav",
-            "-c:a",
-            "libopus",
-            "-b:a",
-            "8k",
-            sample_dir / "applied.ogg",
-        ],
-        check=True,
-        capture_output=True,
-    )
+        applied_score = watermark.check(audio=applied)[0]
 
-    opus, sample_rate = torchaudio.load(sample_dir / "applied.ogg")
-    opus_score = watermark.check(audio=opus, sample_rate=sample_rate)[0]
+        shift = Random(hash(sample_id)).randint(0, 320)
+        shifted_audio = pad(applied, (shift, 0))
+        shifted_score = watermark.check(audio=shifted_audio)[0]
 
-    print(f"{opus_score=:.2f}")
+        opus_scores = []
+
+        for bitrate in ["8k", "10k"]:
+            opus_filename = sample_dir / f"applied-{bitrate}.ogg"
+            run(
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-y",
+                    "-i",
+                    sample_dir / applied_filename,
+                    "-c:a",
+                    "libopus",
+                    "-b:a",
+                    bitrate,
+                    opus_filename,
+                ],
+                check=True,
+                capture_output=True,
+            )
+
+            opus, sample_rate = torchaudio.load(opus_filename)
+            opus_scores.append(watermark.check(audio=opus, sample_rate=sample_rate)[0])
+
+        print(
+            ",".join(
+                [
+                    f"{seed}",
+                    sample_id,
+                    f"{original_score:.2f}",
+                    f"{applied_score:.2f}",
+                    f"{shifted_score:.2f}",
+                    f"{opus_scores[0]:.2f}",
+                    f"{opus_scores[1]:.2f}",
+                ]
+            ),
+            flush=True,
+        )
