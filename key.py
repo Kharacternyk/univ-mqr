@@ -24,7 +24,7 @@ class Key:
                     latent[i] = 0
 
         p = 0.55
-        n = len(latents) * 3
+        n = len(latents) * len(self.channels)
         mu = n * p
         sigma = sqrt(n * p * (1 - p))
         t = (count - mu) / sigma
