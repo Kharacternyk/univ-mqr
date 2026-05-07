@@ -1,7 +1,7 @@
 from subprocess import run
 
 
-def convert_to_opus(*, source_filename: str, target_filename: str, bitrate: str):
+def convert_to_opus(*, source_filename, target_filename, bitrate: str):
     run(
         [
             "ffmpeg",
