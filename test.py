@@ -6,30 +6,19 @@ from torch.nn.functional import pad
 from torchaudio.datasets import LIBRITTS
 from tqdm import tqdm
 
-from key import Key
 from opus import convert_to_opus
 from watermark import Watermark
 
 dataset = LIBRITTS("./data/", "test-clean")
-indices = Random(0).sample(range(len(dataset)), 150)
+indices = Random(1).sample(range(len(dataset)), 150)
 subset = [dataset[i] for i in indices]
 
-keys = [
-    Key(
-        channel_count=64,
-        seed=seed,
-    )
-    for seed in [1, 2, 3]
-]
-watermarks = [
-    Watermark(
-        checkpoint="checkpoints/208000/model.pt",
-        key=key,
-        sample_rate=16_000,
-        shift=16,
-    )
-    for key in keys
-]
+watermark = Watermark(
+    checkpoint="checkpoints/208000/model.pt",
+    channel_count=64,
+    sample_rate=16_000,
+    shift=16,
+)
 
 audio_filename = "audio.wav"
 applied_filename = "applied.wav"
@@ -39,11 +28,10 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
     sample_dir = Path("test") / sample_id
     sample_dir.mkdir(parents=True, exist_ok=True)
 
-    random = Random(hash(sample_id))
-    watermark = random.choice(watermarks)
+    seed = hash(sample_id)
 
     original_score, audio, applied, reconstructed = watermark.check(
-        audio=audio, sample_rate=sample_rate, apply=True, reconstruct=True
+        audio=audio, seed=seed, sample_rate=sample_rate, apply=True, reconstruct=True
     )
 
     assert applied is not None
@@ -55,11 +43,10 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
         sample_dir / reconstructed_filename, reconstructed, watermark.sample_rate
     )
 
-    applied_score = watermark.check(audio=applied)[0]
+    applied_score = watermark.check(audio=applied, seed=seed)[0]
 
-    shift = random.randint(0, 320)
-    shifted_audio = pad(applied, (shift, 0))
-    shifted_score = watermark.check(audio=shifted_audio)[0]
+    shifted_audio = pad(applied, (Random(seed).randint(0, 320), 0))
+    shifted_score = watermark.check(audio=shifted_audio, seed=seed)[0]
 
     opus_scores = []
 
@@ -72,7 +59,9 @@ for audio, sample_rate, *_, sample_id in tqdm(subset):
         )
 
         opus, sample_rate = torchaudio.load(opus_filename)
-        opus_scores.append(watermark.check(audio=opus, sample_rate=sample_rate)[0])
+        opus_scores.append(
+            watermark.check(audio=opus, seed=seed, sample_rate=sample_rate)[0]
+        )
 
     print(
         ",".join(

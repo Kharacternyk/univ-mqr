@@ -8,29 +8,33 @@ from model import Model
 
 class Watermark:
     @inference_mode()
-    def __init__(self, *, checkpoint: str, key: Key, sample_rate: int, shift: int = 0):
+    def __init__(
+        self, *, checkpoint: str, channel_count: int, sample_rate: int, shift: int = 0
+    ):
         state_dict = load(checkpoint, weights_only=True)
-        model = Model(channel_count=key.channel_count).cuda()
+        model = Model(channel_count=channel_count).cuda()
         model.load_state_dict(state_dict, strict=True)
         model.eval()
         # model.encoder.compile(fullgraph=True, dynamic=True, mode="reduce-overhead")
         # model.decoder.compile(fullgraph=True, dynamic=True, mode="reduce-overhead")
 
         self.model = model
-        self.key = key
         self.sample_rate = sample_rate
         self.window = sample_rate // 50
         self.shift = shift
+        self.channel_count = channel_count
 
     @inference_mode()
     def check(
         self,
         *,
+        seed: int,
         audio: Tensor,
         sample_rate: int | None = None,
         apply: bool = False,
         reconstruct: bool = False,
     ) -> tuple[float, Tensor, None | Tensor, None | Tensor]:
+        key = Key(channel_count=self.channel_count, seed=seed)
         audio = audio.cuda()
 
         if sample_rate and sample_rate != self.sample_rate:
@@ -54,7 +58,7 @@ class Watermark:
         high_score = 0
 
         for i, latents in enumerate(latents_batch):
-            score = self.key.check(latents, apply=(i == 0 and apply))
+            score = key.check(latents, apply=(i == 0 and apply))
             high_score = max(high_score, score)
 
         applied = None
