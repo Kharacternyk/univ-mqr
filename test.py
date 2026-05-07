@@ -35,15 +35,14 @@ for seed in [1, 2, 3, 4, 5]:
         sample_dir = Path("test") / f"{seed}" / sample_id
         sample_dir.mkdir(parents=True, exist_ok=True)
 
-        original_score, trimmed, applied, reconstructed = watermark.check(
+        original_score, audio, applied, reconstructed = watermark.check(
             audio=audio, sample_rate=sample_rate, apply=True, reconstruct=True
         )
 
-        assert trimmed is not None
         assert applied is not None
         assert reconstructed is not None
 
-        torchaudio.save(sample_dir / audio_filename, trimmed, watermark.sample_rate)
+        torchaudio.save(sample_dir / audio_filename, audio, watermark.sample_rate)
         torchaudio.save(sample_dir / applied_filename, applied, watermark.sample_rate)
         torchaudio.save(
             sample_dir / reconstructed_filename, reconstructed, watermark.sample_rate

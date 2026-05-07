@@ -19,6 +19,7 @@ class Watermark:
         self.model = model
         self.key = key
         self.sample_rate = sample_rate
+        self.window = sample_rate // 50
         self.shift = shift
 
     @inference_mode()
@@ -29,16 +30,18 @@ class Watermark:
         sample_rate: int | None = None,
         apply: bool = False,
         reconstruct: bool = False,
-    ) -> tuple[float, None | Tensor, None | Tensor, None | Tensor]:
+    ) -> tuple[float, Tensor, None | Tensor, None | Tensor]:
         audio = audio.cuda()
 
         if sample_rate and sample_rate != self.sample_rate:
             audio = resample(audio, sample_rate, self.sample_rate)
 
         if self.shift > 0:
-            window = self.sample_rate // 50
             batch = stack(
-                [pad(audio, (x, window - x)) for x in range(0, window, self.shift)]
+                [
+                    pad(audio, (x, self.window - x))
+                    for x in range(0, self.window, self.shift)
+                ]
             )
         else:
             batch = audio.unsqueeze(0)
@@ -46,7 +49,7 @@ class Watermark:
         latents_batch = [
             [[int(x) for x in xs] for xs in xss.T] for xss in self.model.encoder(batch)
         ]
-        original_latents = tensor(latents_batch[0], dtype=float32, device="cuda").T
+        original_latents = self.to_tensor(latents_batch[0])
 
         high_score = 0
 
@@ -57,14 +60,19 @@ class Watermark:
         applied = None
 
         if apply:
-            applied_latents = tensor(latents_batch[0], dtype=float32, device="cuda").T
-            applied = self.model.decoder(applied_latents).cpu().squeeze(0)
+            applied_latents = self.to_tensor(latents_batch[0])
+            applied = self.decode(applied_latents, audio.size(-1))
 
         reconstructed = None
-        trimmed = None
 
         if reconstruct:
-            reconstructed = self.model.decoder(original_latents).cpu().squeeze(0)
-            trimmed = audio[: len(reconstructed)].cpu()
+            reconstructed = self.decode(original_latents, audio.size(-1))
 
-        return high_score, trimmed, applied, reconstructed
+        return high_score, audio.cpu(), applied, reconstructed
+
+    def decode(self, latents, length) -> Tensor:
+        return self.model.decoder(latents).cpu().squeeze(0)[..., :length]
+
+    @staticmethod
+    def to_tensor(latents) -> Tensor:
+        return tensor(latents, dtype=float32, device="cuda").T
