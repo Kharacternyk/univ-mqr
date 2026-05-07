@@ -1,6 +1,5 @@
 from pathlib import Path
 from random import Random
-from subprocess import run
 
 import torchaudio
 from torch.nn.functional import pad
@@ -8,6 +7,7 @@ from torchaudio.datasets import LIBRITTS
 from tqdm import tqdm
 
 from key import Key
+from opus import convert_to_opus
 from watermark import Watermark
 
 dataset = LIBRITTS("./data/", "test-clean")
@@ -58,21 +58,10 @@ for seed in [1, 2, 3, 4, 5]:
 
         for bitrate in ["8k", "10k"]:
             opus_filename = sample_dir / f"applied-{bitrate}.ogg"
-            run(
-                [
-                    "ffmpeg",
-                    "-hide_banner",
-                    "-y",
-                    "-i",
-                    sample_dir / applied_filename,
-                    "-c:a",
-                    "libopus",
-                    "-b:a",
-                    bitrate,
-                    opus_filename,
-                ],
-                check=True,
-                capture_output=True,
+            convert_to_opus(
+                source_filename=sample_dir / applied_filename,
+                target_filename=opus_filename,
+                bitrate=bitrate,
             )
 
             opus, sample_rate = torchaudio.load(opus_filename)
@@ -92,3 +81,11 @@ for seed in [1, 2, 3, 4, 5]:
             ),
             flush=True,
         )
+
+        for bitrate in ["6k", "8k", "12k", "24k"]:
+            opus_filename = sample_dir / f"audio-{bitrate}.ogg"
+            convert_to_opus(
+                source_filename=sample_dir / audio_filename,
+                target_filename=opus_filename,
+                bitrate=bitrate,
+            )
