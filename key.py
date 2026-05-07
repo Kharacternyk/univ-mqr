@@ -12,7 +12,7 @@ class Key:
         self.channel_count = channel_count
         self.channels = Random(seed).sample(range(channel_count), 3)
 
-    def check(self, latents: list[list[int]], apply: bool = False) -> float:
+    def check(self, latents: list[list[int]], apply: bool = False) -> tuple[float, int]:
         count = 0
 
         for latent in latents:
@@ -28,4 +28,4 @@ class Key:
         sigma = sqrt(n * p * (1 - p))
         t = (count - mu) / sigma
 
-        return (1 + erf(t / sqrt(2))) / 2
+        return (1 + erf(t / sqrt(2))) / 2, count

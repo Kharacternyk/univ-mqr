@@ -31,7 +31,7 @@ for i in tqdm(indices):
     sample_dir = Path("test") / sample_id
     sample_dir.mkdir(parents=True, exist_ok=True)
 
-    original_score, audio, applied, reconstructed = watermark.check(
+    original_score, latent_length, audio, applied, reconstructed = watermark.check(
         audio=audio,
         seed=i,
         sample_rate=sample_rate,
@@ -86,10 +86,15 @@ for i in tqdm(indices):
             ",".join(
                 [
                     sample_id,
-                    f"{original_score:.4f}",
-                    f"{applied_score:.4f}",
-                    f"{shifted_score:.4f}",
-                    *(f"{opus_scores[bitrate]:.4f}" for bitrate in bitrates),
+                    f"{latent_length}",
+                    f"{original_score[0]:.4f}",
+                    f"{applied_score[0]:.4f}",
+                    f"{shifted_score[0]:.4f}",
+                    *(f"{opus_scores[bitrate][0]:.4f}" for bitrate in bitrates),
+                    f"{original_score[1]}",
+                    f"{applied_score[1]}",
+                    f"{shifted_score[1]}",
+                    *(f"{opus_scores[bitrate][1]}" for bitrate in bitrates),
                 ]
             ),
             flush=True,

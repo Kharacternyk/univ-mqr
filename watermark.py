@@ -33,7 +33,7 @@ class Watermark:
         sample_rate: int | None = None,
         apply: bool = False,
         reconstruct: bool = False,
-    ) -> tuple[float, Tensor, None | Tensor, None | Tensor]:
+    ) -> tuple[tuple[float, int], int, Tensor, None | Tensor, None | Tensor]:
         key = Key(channel_count=self.channel_count, seed=seed)
         audio = audio.cuda()
 
@@ -55,7 +55,7 @@ class Watermark:
         ]
         original_latents = self.to_tensor(latents_batch[0])
 
-        high_score = 0
+        high_score = (0, 0)
 
         for i, latents in enumerate(latents_batch):
             score = key.check(latents, apply=(i == 0 and apply))
@@ -72,7 +72,13 @@ class Watermark:
         if reconstruct:
             reconstructed = self.decode(original_latents, audio.size(-1))
 
-        return high_score, audio.cpu(), applied, reconstructed
+        return (
+            high_score,
+            original_latents.size(-1),
+            audio.cpu(),
+            applied,
+            reconstructed,
+        )
 
     def decode(self, latents, length) -> Tensor:
         return self.model.decoder(latents).cpu().squeeze(0)[..., :length]
