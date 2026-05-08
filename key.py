@@ -22,10 +22,13 @@ class Key:
                 elif apply:
                     latent[i] = 0
 
+        return self.bound(len(latents), count), count
+
+    def bound(self, length, count):
         p = 0.57
-        n = len(latents) * len(self.channels)
+        n = length * len(self.channels)
         mu = n * p
         sigma = sqrt(n * p * (1 - p))
         t = (count - mu) / sigma
 
-        return (1 + erf(t / sqrt(2))) / 2, count
+        return (1 + erf(t / sqrt(2))) / 2
